@@ -1,2 +1,3 @@
-*.o
-proxy
+out/*.o
+bin/proxy
+downloads/*
