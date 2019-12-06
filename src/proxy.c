@@ -88,6 +88,8 @@ int main(int argc, char *argv[]) {
         return 1;
     }
 
+    pthread_t tid[LISTENQ];
+
     printf("Proxy listening on port %d\n", port);
     while (true) {
         int *cfd = malloc(sizeof(int));
@@ -99,6 +101,12 @@ int main(int argc, char *argv[]) {
             continue;
         }
 
-        handle_request(cfd);
+        // Creates a thread to handle connection request
+        pthread_create(&tid[listen_fd], NULL, handle_request, cfd);
+
+        // Detaches the thread
+        pthread_detach(tid[listen_fd]);
+
+        // handle_request(cfd);
     }
 }

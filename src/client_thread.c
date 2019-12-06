@@ -180,13 +180,16 @@ static bool make_get_header(int client_fd, char **full_host, char **path) {
      * We reject any other request (and terminate the connection),
      * because we believe it to be malformed.
      */
-    char *data = buffer_string(buf);
-    char *prefix  = strtok(data, " ");
-    sleep(1);
-    char *url     = strtok(NULL, " ");
-    char *version = strtok(NULL, " ");
 
-    if (prefix == NULL || url == NULL || version == NULL || strtok(NULL, " ") != NULL) {
+    // A context pointer to be passed in to strtok_r
+    char *saveptr;
+    char *data = buffer_string(buf);
+    char *prefix  = strtok_r(data, " ", &saveptr);
+    sleep(1);
+    char *url     = strtok_r(NULL, " ", &saveptr);
+    char *version = strtok_r(NULL, " ", &saveptr);
+
+    if (prefix == NULL || url == NULL || version == NULL || strtok_r(NULL, " ", &saveptr) != NULL) {
         verbose_printf("Malformed request string: GET requests have"
                        " three parts\n");
         goto MALFORMED_ERROR;
