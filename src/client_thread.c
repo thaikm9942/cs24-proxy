@@ -23,6 +23,9 @@
 /* Defines the maximum object size for the data buffer*/
 #define MAX_OBJECT_SIZE 102400
 
+/* Defines a global cache across the program. This cache is initialized in
+ * proxy.c.
+ */
 extern hash_t* cache;
 
 static int open_client_fd(char *hostname, int port, int *err) {
@@ -187,8 +190,7 @@ static bool make_get_header(int client_fd, char **full_host, char **path) {
      * because we believe it to be malformed.
      */
 
-    // A context pointer to be passed in to strtok_r
-    char *saveptr;
+    char *saveptr; // A context pointer to be passed in to strtok_r
     char *data = buffer_string(buf);
     char *prefix  = strtok_r(data, " ", &saveptr);
     sleep(1);
@@ -343,21 +345,19 @@ static bool send_response(int client_fd, int server_fd, char* key) {
         }
         /* Server sent EOF */
         if (bytes_read == 0) {
-            // If the data is less than MAX_OBJECT_SIZE, then add it to the cache;
-            // otherwise, bye.
+            /* If the data is less than MAX_OBJECT_SIZE, then add it
+             * to the cache; otherwise, discard the buffer_t.
+             */
             if (buffer_length(data) < MAX_OBJECT_SIZE) {
-              printf("adding to cache\n");
-              printf("buffer length: %zu\n", buffer_length(data));
-              // printf("buffer string: %s\n", buffer_string(data));
               insert(cache, key, data);
             }
             else {
-              printf("oversized buffer\n");
               buffer_free(data);
               free(key);
             }
             return true;
         }
+        // Writes the data to the buffer_t data as it is being read
         buffer_append_bytes(data, buf, bytes_read);
         ssize_t bytes_written = write(client_fd, buf, bytes_read);
         if (bytes_written < 0) {
@@ -377,15 +377,16 @@ void *handle_request(void *cfd) {
         goto CLIENT_ERROR;
     }
 
+    /* Mallocs a char* pointer to concatenate both the host and path */
     char* key = malloc((strlen(host) + strlen(path) + 1) * sizeof(char));
     strcpy(key, host);
     strcat(key, path);
 
+    /* If the data is not NULL, then skips the server connection and writes
+     * the data directly tot the client.
+     */
     buffer_t* data = get(cache, key);
     if (data != NULL) {
-        printf("retrieving from cache\n");
-        printf("buffer length: %zu\n", buffer_length(data));
-        // printf("buffer string: %s\n", buffer_string(buf));
         write(client_fd, buffer_data(data), buffer_length(data));
         buffer_free(data);
         free(key);

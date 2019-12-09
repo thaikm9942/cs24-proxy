@@ -19,6 +19,7 @@ struct node_t {
   struct node_t *next;
 };
 
+// Construct for a node_t
 node_t* node_init(char* key, buffer_t* value) {
   node_t *node = malloc(sizeof(node_t));
   assert (node != NULL);
@@ -30,6 +31,7 @@ node_t* node_init(char* key, buffer_t* value) {
   return node;
 }
 
+// Frees a node_t pointer
 void node_free(node_t* node) {
   if (!node) {
     return;
@@ -38,6 +40,7 @@ void node_free(node_t* node) {
   free(node);
 }
 
+// Constructor for a queue_t
 queue_t* queue_init(void) {
   queue_t* queue = malloc(sizeof(queue_t));
   assert (queue != NULL);
@@ -46,6 +49,7 @@ queue_t* queue_init(void) {
   return queue;
 }
 
+// Frees a queue_t pointer
 void queue_free(queue_t* queue) {
   if (!queue->head) {
     free(queue);
@@ -60,6 +64,7 @@ void queue_free(queue_t* queue) {
   free(queue);
 }
 
+/* Returns the buffer_t of an associated node */
 buffer_t* get_value(node_t* node) {
   if (!node) {
     return NULL;
@@ -67,23 +72,31 @@ buffer_t* get_value(node_t* node) {
   return node->value;
 }
 
+/* Returns the timestamp of a node */
+clock_t get_timestamp(node_t* node) {
+  return node->timestamp;
+}
+
+/* Returns whether or not the queue contains a node with the given key */
 bool queue_contains(queue_t* queue, char* key) {
   return queue_get(queue, key) != NULL;
 }
 
+/* Returns the node from the queue given a key */
 node_t* queue_get(queue_t* queue, char* key) {
-  // If queue is empty, then return false
+  // If queue is empty, then returns NULL
   if (!queue->head) {
     return NULL;
   }
   node_t* curr = queue->head;
   curr->timestamp = clock();
-  // If the head's key matches the given key, then return curr
+  // If the head's key matches the given key, then return current node
   if (strcmp(curr->key, key) == 0) {
     return curr;
   }
-  // Else loop through the queue and checks if any of the node's key matches
-  // the given key
+  /* Else, loop through the queue and checks if any of the node's key matches
+   * the given key
+   */
   while (curr->next != NULL) {
     curr = curr->next;
     curr->timestamp = clock();
@@ -96,11 +109,15 @@ node_t* queue_get(queue_t* queue, char* key) {
 
 void enqueue(queue_t* queue, node_t* node) {
   node_t* tail = queue->tail;
+  /* If head is NULL, then sets head and tail to the new node
+   * and updates timestamp.
+   */
   if(!queue->head) {
     queue->head = node;
     queue->tail = node;
     node->timestamp = clock();
   }
+  /* Else, updates the queue accordingly and updates the timestamp. */
   else {
     node->prev = tail;
     tail->next = node;
@@ -109,12 +126,16 @@ void enqueue(queue_t* queue, node_t* node) {
   }
 }
 
+/* Returns the least recent node by iterating through the queue and finding
+ * the minimum timestamp. Returns NULL if the queue is empty.
+ */
 node_t* find_least_recent_node(queue_t* queue) {
   node_t* min_node = NULL;
   if(!queue->head) {
     return NULL;
   }
   else {
+    // Loops over queue and check minimum timestamp
     node_t* curr = queue->head;
     clock_t min_time = curr->timestamp;
     min_node = curr;
@@ -129,7 +150,7 @@ node_t* find_least_recent_node(queue_t* queue) {
   return min_node;
 }
 
-// Randomly evicts a LRU element from the queue.
+/* Randomly evicts a LRU element from the queue. */
 size_t queue_remove(queue_t* queue) {
   node_t* head = queue->head;
   node_t* tail = queue->tail;
@@ -142,6 +163,7 @@ size_t queue_remove(queue_t* queue) {
   // If min_node is the only element in the queue, then free it
   if (min_node == head && !head->next) {
     buf_length = buffer_length(head->value);
+    queue->head = NULL;
     node_free(head);
   }
   // If min_node is an element in the queue and there is a next pointer
@@ -188,8 +210,8 @@ size_t queue_remove(queue_t* queue) {
   return buf_length;
 }
 
-// Functions used to test the node and queue implementation
-// Returns the next node of a node, if there is one.
+/* Functions used to test the node and queue implementation */
+/* Returns the next node of a node, if there is one. */
 node_t* get_next_node(node_t* node) {
   if (!node->next) {
     return NULL;
@@ -197,7 +219,7 @@ node_t* get_next_node(node_t* node) {
   return node->next;
 }
 
-// Returns the previous node of a node, if there is one.
+/* Returns the previous node of a node, if there is one. */
 node_t* get_prev_node(node_t* node) {
   if (!node->prev) {
     return NULL;
