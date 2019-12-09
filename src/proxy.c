@@ -11,9 +11,12 @@
 #include <unistd.h>
 
 #include "client_thread.h"
+#include "hash.h"
 
 /* Maximum number of connections to queue up */
 #define LISTENQ 1024
+
+hash_t* cache = NULL;
 
 static int open_listen_fd(int port) {
     /* Create a socket descriptor */
@@ -90,6 +93,11 @@ int main(int argc, char *argv[]) {
 
     pthread_t tid[LISTENQ];
 
+    // Initializing the cache
+    if (!cache) {
+      cache = hash_init();
+    }
+
     printf("Proxy listening on port %d\n", port);
     while (true) {
         int *cfd = malloc(sizeof(int));
@@ -100,13 +108,8 @@ int main(int argc, char *argv[]) {
             free(cfd);
             continue;
         }
-
         // Creates a thread to handle connection request
         pthread_create(&tid[listen_fd], NULL, handle_request, cfd);
-
-        // Detaches the thread
-        pthread_detach(tid[listen_fd]);
-
-        // handle_request(cfd);
     }
+    hash_free(cache);
 }

@@ -12,7 +12,8 @@
 #define TABLE_SIZE 67
 
 /* Defines the maximum cache size for the proxy cache */
-#define MAX_CACHE_SIZE 1048756
+// #define MAX_CACHE_SIZE 1048756
+#define MAX_CACHE_SIZE 50000
 
 
 struct hash_t {
@@ -102,7 +103,9 @@ void hash_remove(hash_t* hash_table, char* key) {
   size_t node_id = get_hash_id(hash_table, key);
   pthread_rwlock_wrlock(&hash_table->table_lock);
   size_t removed = queue_remove(hash_table->queue_arr[node_id]);
+  printf("removed size: %zu\n", removed);
   hash_table->cache_size -= removed;
+  printf("current cache size: %zu\n", get_cache_size(hash_table));
   pthread_rwlock_unlock(&hash_table->table_lock);
 }
 
@@ -112,10 +115,12 @@ void insert(hash_t* hash_table, char* key, buffer_t* value) {
   // If the added buffer size cause the cache size to overflow, then remove
   // until there's enough space
   while (hash_table->cache_size + buffer_length(value) > MAX_CACHE_SIZE) {
+    // printf("removing from cache because it's full\n");
     hash_remove(hash_table, key);
   }
   pthread_rwlock_wrlock(&hash_table->table_lock);
   enqueue(hash_table->queue_arr[node_id], new_node);
   hash_table->cache_size += buffer_length(value);
+  printf("current cache size: %zu\n", get_cache_size(hash_table));
   pthread_rwlock_unlock(&hash_table->table_lock);
 }

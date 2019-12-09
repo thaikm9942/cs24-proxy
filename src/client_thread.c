@@ -16,8 +16,14 @@
 
 #include "client_thread.h"
 #include "buffer.h"
+#include "hash.h"
 
 #define BUFFER_SIZE 8192
+
+/* Defines the maximum object size for the data buffer*/
+#define MAX_OBJECT_SIZE 102400
+
+extern hash_t* cache;
 
 static int open_client_fd(char *hostname, int port, int *err) {
     int client_fd = socket(AF_INET, SOCK_STREAM, 0);
@@ -325,8 +331,19 @@ static bool filter_rest_headers(int client_fd, int server_fd, char *host) {
 
 /* Sends the server's response to the client.
  * Returns whether successful */
-static bool send_response(int client_fd, int server_fd) {
+static bool send_response(int client_fd, int server_fd, char* key) {
+    buffer_t* data = get(cache, key);
+    if (data != NULL) {
+        printf("retrieving from cache\n");
+        printf("buffer length: %zu\n", buffer_length(data));
+        // printf("buffer string: %s\n", buffer_string(buf));
+        write(client_fd, buffer_data(data), buffer_length(data));
+        free(key);
+        buffer_free(data);
+        return true;
+    }
     /* Loop until server sends an EOF */
+    data = buffer_create(BUFFER_SIZE);
     while (true) {
         uint8_t buf[BUFFER_SIZE];
         ssize_t bytes_read = read(server_fd, buf, sizeof(buf));
@@ -334,12 +351,24 @@ static bool send_response(int client_fd, int server_fd) {
             verbose_printf("read error: %s\n", strerror(errno));
             return false;
         }
-
         /* Server sent EOF */
         if (bytes_read == 0) {
+            // If the data is less than MAX_OBJECT_SIZE, then add it to the cache;
+            // otherwise, bye.
+            if (buffer_length(data) < MAX_OBJECT_SIZE) {
+              printf("adding to cache\n");
+              printf("buffer length: %zu\n", buffer_length(data));
+              // printf("buffer string: %s\n", buffer_string(data));
+              insert(cache, key, data);
+            }
+            else {
+              printf("oversized buffer\n");
+              buffer_free(data);
+              free(key);
+            }
             return true;
         }
-
+        buffer_append_bytes(data, buf, bytes_read);
         ssize_t bytes_written = write(client_fd, buf, bytes_read);
         if (bytes_written < 0) {
             return false;
@@ -348,6 +377,8 @@ static bool send_response(int client_fd, int server_fd) {
 }
 
 void *handle_request(void *cfd) {
+    // Detaches the current thread
+    pthread_detach(pthread_self());
     int client_fd = *(int *) cfd;
     free(cfd);
 
@@ -355,6 +386,10 @@ void *handle_request(void *cfd) {
     if (!make_get_header(client_fd, &host, &path)) {
         goto CLIENT_ERROR;
     }
+
+    char* key = malloc((strlen(host) + strlen(path) + 1) * sizeof(char));
+    strcpy(key, host);
+    strcat(key, path);
 
     /* Establish connection with requested server */
     int server_fd = open_server_connection(client_fd, host);
@@ -376,7 +411,7 @@ void *handle_request(void *cfd) {
 
     /* Forward response from server to client, and store the response in the
      * cache if possible */
-    if (!send_response(client_fd, server_fd)) {
+    if (!send_response(client_fd, server_fd, key)) {
         verbose_printf("send_reponse error: %s\n", strerror(errno));
         /* Fall through, since we're done anyway */
     }
