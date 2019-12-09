@@ -12,8 +12,8 @@
 #define TABLE_SIZE 67
 
 /* Defines the maximum cache size for the proxy cache */
-// #define MAX_CACHE_SIZE 1048756
-#define MAX_CACHE_SIZE 50000
+#define MAX_CACHE_SIZE 1048756
+// #define MAX_CACHE_SIZE 50000
 
 
 struct hash_t {

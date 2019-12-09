@@ -332,18 +332,8 @@ static bool filter_rest_headers(int client_fd, int server_fd, char *host) {
 /* Sends the server's response to the client.
  * Returns whether successful */
 static bool send_response(int client_fd, int server_fd, char* key) {
-    buffer_t* data = get(cache, key);
-    if (data != NULL) {
-        printf("retrieving from cache\n");
-        printf("buffer length: %zu\n", buffer_length(data));
-        // printf("buffer string: %s\n", buffer_string(buf));
-        write(client_fd, buffer_data(data), buffer_length(data));
-        free(key);
-        buffer_free(data);
-        return true;
-    }
     /* Loop until server sends an EOF */
-    data = buffer_create(BUFFER_SIZE);
+    buffer_t* data = buffer_create(BUFFER_SIZE);
     while (true) {
         uint8_t buf[BUFFER_SIZE];
         ssize_t bytes_read = read(server_fd, buf, sizeof(buf));
@@ -391,6 +381,17 @@ void *handle_request(void *cfd) {
     strcpy(key, host);
     strcat(key, path);
 
+    buffer_t* data = get(cache, key);
+    if (data != NULL) {
+        printf("retrieving from cache\n");
+        printf("buffer length: %zu\n", buffer_length(data));
+        // printf("buffer string: %s\n", buffer_string(buf));
+        write(client_fd, buffer_data(data), buffer_length(data));
+        buffer_free(data);
+        free(key);
+        goto RETURN_SECTION;
+    }
+
     /* Establish connection with requested server */
     int server_fd = open_server_connection(client_fd, host);
     if (server_fd < 0) {
@@ -417,22 +418,23 @@ void *handle_request(void *cfd) {
     }
 
     close(server_fd);
+    goto RETURN_SECTION;
 
-    /* Close the write end of the client socket and wait for it to send EOF. */
-    if (shutdown(client_fd, SHUT_WR) < 0) {
-        verbose_printf("shutdown error: %s\n", strerror(errno));
-        goto CLIENT_ERROR;
-    }
-    uint8_t discard_buffer[BUFFER_SIZE];
-    if (read(client_fd, discard_buffer, sizeof(discard_buffer)) < 0) {
-        verbose_printf("read error: %s\n", strerror(errno));
-        goto CLIENT_ERROR;
-    }
-    close(client_fd);
-
-    free(host);
-    free(path);
-    return NULL;
+    RETURN_SECTION:
+      /* Close the write end of the client socket and wait for it to send EOF. */
+      if (shutdown(client_fd, SHUT_WR) < 0) {
+          verbose_printf("shutdown error: %s\n", strerror(errno));
+          goto CLIENT_ERROR;
+      }
+      uint8_t discard_buffer[BUFFER_SIZE];
+      if (read(client_fd, discard_buffer, sizeof(discard_buffer)) < 0) {
+          verbose_printf("read error: %s\n", strerror(errno));
+          goto CLIENT_ERROR;
+      }
+      close(client_fd);
+      free(host);
+      free(path);
+      return NULL;
 
     SERVER_ERROR:
         verbose_printf("Error in writing to server\n");
