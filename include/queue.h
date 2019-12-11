@@ -7,16 +7,20 @@
 
 typedef struct node_t node_t;
 
-// A queue_t struct contains a pointer to the head and the tail
+/* A queue_t struct contains a pointer to the head and the tail. This is defined
+ * so the hash table implementation can access.
+ */
 typedef struct queue_t {
   node_t* head;
   node_t* tail;
 } queue_t;
 
-// Initiliazes a new node with a given key and a given value
+// Initializes a new node with a given key and a given value
 node_t* node_init(char* key, buffer_t* value);
 // Frees the given node
 void node_free(node_t* node);
+// Returns the timestamp of a node
+clock_t get_timestamp(node_t* node);
 // Initializes a new queue with NULL head and tail pointers
 queue_t* queue_init();
 // Frees a given queue pointer by iterating over every node and calling node_free
@@ -33,11 +37,12 @@ void enqueue(queue_t* queue, node_t* node);
 // the minimum timestamp
 node_t* find_least_recent_node(queue_t* queue);
 // Removes the least recently used element in a queue by checking each timestamp
-// and returns the buffer size of the value removed
+// and returns the buffer size of the value removed.
 size_t queue_remove(queue_t* queue);
 
 // Functions used to test the node and queue implementation
 node_t* get_next_node(node_t* node);
 node_t* get_prev_node(node_t* node);
+
 
 #endif // QUEUE_H

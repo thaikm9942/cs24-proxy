@@ -24,9 +24,9 @@ size_t get_hash_id(hash_t* hash_table, char* key);
 bool contains(hash_t* hash_table, char* key);
 // Returns the value associated with a key from the hash_table
 buffer_t* get(hash_t* hash_table, char* key);
-// Removes an element from the queue associated with key in the hash table
-void hash_remove(hash_t* hash_table, char* key);
-// Inserts an element into the hash table using the hash table
+// Removes an element from the hash table
+void hash_remove(hash_t* hash_table);
+// Inserts a node element into the hash table given a key and a value
 void insert(hash_t* hash_table, char* key, buffer_t* value);
 
 #endif // HASH_H

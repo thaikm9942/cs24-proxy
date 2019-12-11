@@ -91,6 +91,7 @@ int main(int argc, char *argv[]) {
         return 1;
     }
 
+    // Initializes an array of pthread_t of size LISTENQ
     pthread_t tid[LISTENQ];
 
     // Initializing the cache
