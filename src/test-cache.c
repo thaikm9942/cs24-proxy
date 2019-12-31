@@ -19,18 +19,6 @@ int main() {
   buffer_append_char(buf1, 'd');
   buffer_append_char(buf1, 'e');
 
-  /*
-  char* key2 = "b";
-  buffer_t *buf2 = buffer_create(DEFAULT_CAPACITY);
-  buffer_append_char(buf2, 'f');
-  buffer_append_char(buf2, 'g');
-  buffer_append_char(buf2, 'h');
-
-  char* key3 = "c";
-  buffer_t *buf3 = buffer_create(DEFAULT_CAPACITY);
-  buffer_append_char(buf3, 'i');
-  */
-
   // Initializes a new cache
   hash_t* cache = hash_init();
 

@@ -1,3 +1,22 @@
+/*
+ * queue.c - A package implementing a queue using a LinkedList
+ *
+ * This queue uses a LinkedList to store its data, which are enclosed in
+ * node_t structs. Each node_t has a previous and next pointer, a key and its
+ * corresponding value, and a timestamp for LRU cache implementation. The actual
+ * queue_t struct itself stores 2 pointers: one to the head of the queue
+ * and one to the tail of the queue.
+ *
+ * The queue has 3 basic functions: insert, get and remove. Get has O(n) runtime
+ * where n is the size of the queue. Inserting and removing date updates
+ * the head, tail and all the next and previous pointers accordingly. Each
+ * time remove is called, the queue is looped over to find the least recent node
+ * based on the its timestamp, and this least recent node is removed and freed
+ * accordingly.
+ *
+ * This implementation is correct and effective.
+ */
+
 #include <assert.h>
 #include <stdbool.h>
 #include <stdio.h>

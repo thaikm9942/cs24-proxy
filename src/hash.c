@@ -1,6 +1,33 @@
 /*
-
-*/
+ * hash.c - A package using a basic, non-dynamic Hash Table that contains an
+ * array of queue pointers as a LRU cache to store websites.
+ *
+ * Each time the cache is initialized, a hash table containing a TABLE_SIZE
+ * size array of queue pointers is initialized. This hash table keeps track of
+ * all stored keys and values of the HTTP websites as well as the cache size.
+ *
+ * The hash table contains 3 basic functions: insert, remove and get. Everytime
+ * a new element is inserted, its key is hashed and both the key and value are
+ * stored as a node_t struct (see queue.c for explanation) within its respective
+ * queue. The queue (which is a pointer containing the pointers to the head node
+ * and the tail node) is updated accordingly. When remove is called, an element
+ * is removed from the hash table based on LRU policy. This is achieved by
+ * updating the timestamp in each node_t every time it is accessed. The node_t
+ * with the least recent timestamp is removed and freed, and the queue is
+ * updated accordingly. When get is called using a key, the queue corresponding
+ * to the key hash id is iterated over until its matching node_t is found.
+ * To prevent race conditions, a copy of the buffer_t value is returned instead
+ * of the actual value.
+ *
+ * If the maximum cache size is exceeded when insert is attempted, then the hash
+ * table automatically removes elements until there is enough space for caching.
+ *
+ * To create a thread-safe cache, a read-writer lock is used for the 3 functions
+ * insert, get and create.
+ *
+ * This implementation is (hopefully) correct, thread-safe, utilize O(1)
+ * lookup with a slightly slow insert and remove.
+ */
 
 #include <assert.h>
 #include <pthread.h>
@@ -139,6 +166,7 @@ size_t find_least_recent_node_hash(hash_t* hash_table) {
  */
 void hash_remove(hash_t* hash_table) {
   size_t queue_idx_to_remove = find_least_recent_node_hash(hash_table);
+  // If queue_idx is NULL_INDEX, there is nothing to remove
   if (queue_idx_to_remove == NULL_INDEX) {
     return;
   }
